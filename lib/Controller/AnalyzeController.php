@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\ArchivesAnalyzer\Controller;
 
-use OCA\ArchivesAnalyzer\AppInfo\Application;
+use Exception;
 
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -63,7 +63,7 @@ class AnalyzeController extends Controller
 		if (is_null($file) || $file === '') { // Added check for empty string
 // 			$this->logger->warning('Analyze request received without a valid file parameter');
 			if (is_null($file) || $file === '') {
-				return new JSONResponse(['error' => 'File parameter missing or empty'], JSONResponse::STATUS_BAD_REQUEST);
+				return new JSONResponse(['error' => 'File parameter missing or empty'], Http::STATUS_BAD_REQUEST);
 			}
 		}
 
@@ -73,7 +73,7 @@ class AnalyzeController extends Controller
 			$user = $this->userSession->getUser();
 			if ($user === null) {
 				$this->logger->warning('User not logged in when trying to analyze file');
-	            return new JSONResponse(['error' => 'User not logged in'], JSONResponse::STATUS_UNAUTHORIZED);
+	            return new JSONResponse(['error' => 'User not logged in'], Http::STATUS_UNAUTHORIZED);
 			}
 
 			// Get file info if possible
@@ -88,13 +88,11 @@ class AnalyzeController extends Controller
 // 					'mime' => $file->getMimeType(),
 // 					'size' => $file->getSize()
 // 				]);
-				$base64 = null;
                 $imageData = $file->getContent();
 				$base64 = base64_encode($imageData);
 
 				// make a request to the api llm service
 				$llmApiUrl = 'http://host.docker.internal:3000/api/llm/generate';
-// 			        $httpClient = \OC::$server->get(IClientService::class)->newClient();
 				$httpClient = $this->clientService->newClient();
 				$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
 				$model = 'qwen2.5vl:32b-q8_0';
@@ -126,10 +124,11 @@ class AnalyzeController extends Controller
 						$this->logger->error('LLM API returned empty response');
 						return new JSONResponse(['error' => 'LLM API returned empty response'], Http::STATUS_BAD_GATEWAY);
 					}
-				    // cleanup any markdown code block
-					$dataResponse = preg_replace('/^```markdown|```$/', '', $dataResponse);
+				    // cleanup any Markdown code block
+//					$dataResponse = preg_replace('/^```markdown|```$/', '', $dataResponse);
 					// trim spaces at the beginning and end
-					$dataResponse = trim($dataResponse);
+//					$dataResponse = trim($dataResponse);
+					$dataResponse = $this->cleanupMarkdownCodeBlock($dataResponse);
 
 					$originalName = $file->getName();
 					$baseName = pathinfo($originalName, PATHINFO_FILENAME);
@@ -149,19 +148,10 @@ class AnalyzeController extends Controller
 						'fileid' => $newFile->getId(),
 						'parentid' => $parentFolder->getId()
 					 ], Http::STATUS_OK);
-				} catch (IClientException $e) {
+				} catch (Exception $e) {
 					$this->logger->error('LLM API request failed: ' . $e->getMessage());
 					return new JSONResponse(['error' => 'LLM API request failed'], Http::STATUS_BAD_GATEWAY);
 				}
-
-				return new JSONResponse([
-					'fileInfo' => [
-						'id' => $file->getId(),
-						'name' => $file->getName(),
-						'mime' => $file->getMimeType(),
-						'size' => $file->getSize(),
-					]
-				]);
 			} else {
 // 				$this->logger->warning('File not found', ['path' => $relativePath]);
 	            return new JSONResponse(['error' => 'File not found'], Http::STATUS_NOT_FOUND);
@@ -176,5 +166,36 @@ class AnalyzeController extends Controller
 
 // 		$this->logger->debug('Rendering analyze template', ['template_data' => array_keys($templateData)]);
     }
+
+	public function cleanupMarkdownCodeBlock(string $markdown): string
+	{
+		// cleanup any Markdown code block
+		$markdown = preg_replace('/^```markdown|```$/', '', $markdown);
+		// trim spaces at the beginning and end
+		return trim($markdown);
+	}
+
+	public function queryLLMService($base64Image) {
+		$llmApiUrl = 'http://host.docker.internal:3000/api/llm/generate';
+		$httpClient = $this->clientService->newClient();
+		$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
+		$model = 'qwen2.5vl:32b-q8_0';
+		$payload = [
+			'images' => [$base64Image],
+			'model' => $model,
+			'prompt' => $prompt,
+		];
+
+		$response = $httpClient->post($llmApiUrl, [
+			'body' => json_encode($payload),
+			'headers' => [
+				'Content-Type' => 'application/json',
+				'Accept' => 'application/json',
+				'x-api-key' => '1cd01ecf-5222-4e24-b8df-2435e78ecf87'
+			],
+			'timeout' => 60
+		]);
+		return $response->getBody();
+	}
 
 }

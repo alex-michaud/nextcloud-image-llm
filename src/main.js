@@ -1,53 +1,13 @@
 import { translate as t } from '@nextcloud/l10n'
 import { registerFileAction, FileAction } from '@nextcloud/files'
-import { emit } from '@nextcloud/event-bus'
-import { generateUrl } from '@nextcloud/router'
+// import { emit } from '@nextcloud/event-bus'
+// import { generateUrl } from '@nextcloud/router'
 import { showError, showInfo } from '@nextcloud/dialogs'
 import { getLogger } from '@nextcloud/logger'
 import svgBrain from '@mdi/svg/svg/brain.svg'
+import { AnalyzeFile } from './AnalyzeFile.js' // Assuming you have this function in a separate file
 
 const logger = getLogger()
-
-function debugInfo(message, data) {
-	logger.debug(message, data)
-}
-
-function analyzeFile(file) {
-	return fetch(
-		generateUrl('/apps/archives_analyzer/analyze/markdown') + '?file=' + encodeURIComponent(file.path),
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				requesttoken: OC.requestToken, // for CSRF protection if needed
-			},
-			credentials: 'same-origin',
-		},
-	)
-		.then(response => response.json())
-		.then(data => {
-			debugInfo('AnalyzeController response', data)
-			// Handle the response (show result, error, etc.)
-			if (data.error) {
-				showError('Analyze error: ' + data.error)
-			} else {
-				showInfo('Analysis complete :' + data.fileid)
-				// refresh the file list or update UI as needed
-				emit('files:node:updated', { fileid: parseInt(data.parentid) || null })
-			}
-		})
-		.catch(error => {
-			logger.error('AnalyzeController fetch error:', error)
-			showError('Failed to analyze file: ' + error.message)
-		})
-		.finally(() => {
-			// const nodeList = []
-			// emit('files:list:updated', { contents: nodeList })
-			// const customReloadEvent = new CustomEvent('reload')
-			// dispatchEvent(customReloadEvent)
-			// eventBus.dispatchEvent(customReloadEvent);
-		})
-}
 
 const fileAction = new FileAction({
 	id: 'analyze_with_ai',
@@ -57,14 +17,14 @@ const fileAction = new FileAction({
 	},
 	order: 1,
 	enabled: (files) => {
-		debugInfo('Checking if action is enabled', { filesCount: files.length })
+		logger.debug('Checking if action is enabled', { filesCount: files.length })
 		return files.length === 1 && files[0].mime.startsWith('image/')
 		// return true
 	},
 
 	// The action to perform
 	exec: (file) => {
-		debugInfo('Executing action for file', {
+		logger.debug('Executing action for file', {
 			filePath: file.path,
 			fileMime: file.mime,
 		})
@@ -75,7 +35,7 @@ const fileAction = new FileAction({
 			isHTML: true,
 		})
 
-		analyzeFile(file).finally(() => {
+		AnalyzeFile(file).finally(() => {
 			toastAnalyze.hideToast()
 		})
 	},
@@ -98,7 +58,7 @@ const fileAction = new FileAction({
 				isHTML: true,
 			})
 
-			analyzeFile(file).finally(() => {
+			AnalyzeFile(file).finally(() => {
 				toastAnalyze.hideToast()
 			})
 		}
@@ -106,10 +66,10 @@ const fileAction = new FileAction({
 })
 
 try {
-	debugInfo('Creating file action')
+	logger.debug('Creating file action')
 
 	registerFileAction(fileAction)
-	debugInfo('--File action registered')
+	logger.debug('--File action registered')
 } catch (error) {
 	logger.error('Archives Analyzer: Error registering file action:', error)
 	showError('Failed to register file action: ' + error.message)

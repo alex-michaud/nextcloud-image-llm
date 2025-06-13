@@ -13,8 +13,10 @@ use OCP\ILogger;
 use OCP\Server;
 
 class Application extends App implements IBootstrap {
+	public const APP_ID = 'archives_analyzer';
+
     public function __construct() {
-        parent::__construct('archives_analyzer');
+        parent::__construct(self::APP_ID);
 // 		$this->getLogger()->debug('Initializing Archives Analyzer Application');
     }
 
@@ -32,7 +34,7 @@ class Application extends App implements IBootstrap {
 
 		try {
 			// Be explicit about the path
-			Util::addScript('archives_analyzer', 'archives_analyzer-main', 'files');
+			Util::addScript(self::APP_ID, 'archives_analyzer-main', 'files');
 // 			$logger->debug('Script registered successfully');
 		} catch (\Exception $e) {
 // 			$logger->error('Error registering script: ' . $e->getMessage());
