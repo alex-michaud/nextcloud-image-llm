@@ -3,7 +3,7 @@
 /** @var \OCP\IL10N $l */
 /** @var OCP\IURLGenerator $urlGenerator */
 $urlGenerator = $_['urlGenerator'];
-$version = \OC::$server->getAppManager()->getAppVersion('files_pdfviewer');
+$version = \OC::$server->getAppManager()->getAppVersion('archives_analyzer');
 ?>
 <script src="<?php print_unescaped(\OC::$server->getURLGenerator()->linkTo('archives_analyzer', 'js/archives_analyzer-main.js')); ?>"></script>
 <link rel="stylesheet" href="<?php p($urlGenerator->linkTo('archives_analyzer', 'css/viewer.css')) ?>?v=<?php p($version) ?>"/>

@@ -17,7 +17,7 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use OCP\Http\Client\IClientService;
-use OCP\Http\Client\IClientException;
+//use OCP\Http\Client\IClientException;
 
 class AnalyzeController extends Controller
 {
