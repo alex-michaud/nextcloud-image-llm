@@ -5,9 +5,9 @@ import { getLogger } from '@nextcloud/logger'
 
 const logger = getLogger()
 
-export const AnalyzeFile = function(file) {
+export const AnalyzeFile = function(file, prompt) {
 	return fetch(
-		generateUrl('/apps/archives_analyzer/analyze/markdown') + '?file=' + encodeURIComponent(file.path),
+		generateUrl('/apps/archives_analyzer/analyze/markdown') + '?file=' + encodeURIComponent(file.path) + '&prompt=' + encodeURIComponent(prompt || ''),
 		{
 			method: 'GET',
 			headers: {

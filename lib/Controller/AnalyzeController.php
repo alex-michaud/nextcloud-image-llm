@@ -57,13 +57,14 @@ class AnalyzeController extends Controller
 
     #[NoCSRFRequired]
     #[NoAdminRequired]
-    public function markdown(string $file): JSONResponse
+	/**
+	 * Convert an archive file to Markdown format using an LLM service.
+	 */
+    public function markdown(string $file, string $prompt): JSONResponse
     {
-//     	$this->logger->debug('Analyze request received', [
-// 			'file' => $file,
-// 			'request_method' => $this->request->getMethod(),
-// 			'request_params' => $this->request->getParams()
-// 		]);
+		if (!$prompt) {
+			$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
+		}
 
 		if (is_null($file) || $file === '') { // Added check for empty string
 // 			$this->logger->warning('Analyze request received without a valid file parameter');
@@ -93,33 +94,22 @@ class AnalyzeController extends Controller
 // 					'mime' => $file->getMimeType(),
 // 					'size' => $file->getSize()
 // 				]);
-                $imageData = $file->getContent();
-				$base64 = base64_encode($imageData);
+//                $imageData = $file->getContent();
+//				$base64 = base64_encode($imageData);
+				$base64 = $this->getBase64ImageFromFile($file);
 
 				// make a request to the api llm service
-				$httpClient = $this->clientService->newClient();
-				$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
-				$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', 'qwen2.5vl:32b-q8_0');
-				$payload = [
-					'images' => [$base64],
-					'model' => $model,
-					'prompt' => $prompt,
-				];
+//				$httpClient = $this->clientService->newClient();
+
+//				$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', 'qwen2.5vl:32b-q8_0');
+//				$payload = [
+//					'images' => [$base64],
+//					'model' => $model,
+//					'prompt' => $prompt,
+//				];
 
 				try {
-					$apiKey = $this->config->getValueString('archives_analyzer', 'ApiKey');
-					$apiUrl = $this->config->getValueString('archives_analyzer', 'ApiUrl');
-
-					if (empty($apiKey)) {
-						$this->logger->error('API Key is not configured in Archives Analyzer settings');
-						return new JSONResponse(['error' => 'API Key is not configured'], Http::STATUS_BAD_REQUEST);
-					}
-					if (empty($apiUrl)) {
-						$this->logger->error('API URL is not configured in Archives Analyzer settings');
-						return new JSONResponse(['error' => 'API URL is not configured'], Http::STATUS_BAD_REQUEST);
-					}
-
-					$response = $httpClient->post($apiUrl, [
+					/*$response = $httpClient->post($apiUrl, [
 						'body' => json_encode($payload),
 						'headers' => [
 							'Content-Type' => 'application/json',
@@ -128,7 +118,10 @@ class AnalyzeController extends Controller
 						],
 						'timeout' => 60
 					]);
-					$apiResult = $response->getBody();
+					$apiResult = $response->getBody();*/
+
+					$apiResult = $this->queryLLMService($base64, $prompt);
+
 					// Optionally decode JSON if needed:
 					$apiData = json_decode($apiResult, true);
 					if (json_last_error() !== JSON_ERROR_NONE) {
@@ -191,23 +184,43 @@ class AnalyzeController extends Controller
 		return trim($markdown);
 	}
 
-	public function queryLLMService($base64Image) {
-		$llmApiUrl = 'http://host.docker.internal:3000/api/llm/generate';
+	public function getBase64ImageFromFile($file) {
+		if ($file instanceof \OCP\Files\File) {
+			$imageData = $file->getContent();
+			return base64_encode($imageData);
+		} else {
+			throw new \InvalidArgumentException('Provided file is not a valid OCP\Files\File instance');
+		}
+	}
+
+	public function queryLLMService($base64Image, $prompt) {
+		$apiKey = $this->config->getValueString('archives_analyzer', 'ApiKey');
+		$apiUrl = $this->config->getValueString('archives_analyzer', 'ApiUrl');
+		$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', 'qwen2.5vl:32b-q8_0');
+
+		if (empty($apiKey)) {
+			$this->logger->error('API Key is not configured in Archives Analyzer settings');
+			return new JSONResponse(['error' => 'API Key is not configured'], Http::STATUS_BAD_REQUEST);
+		}
+		if (empty($apiUrl)) {
+			$this->logger->error('API URL is not configured in Archives Analyzer settings');
+			return new JSONResponse(['error' => 'API URL is not configured'], Http::STATUS_BAD_REQUEST);
+		}
+
 		$httpClient = $this->clientService->newClient();
-		$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
-		$model = 'qwen2.5vl:32b-q8_0';
+
 		$payload = [
 			'images' => [$base64Image],
 			'model' => $model,
 			'prompt' => $prompt,
 		];
 
-		$response = $httpClient->post($llmApiUrl, [
+		$response = $httpClient->post($apiUrl, [
 			'body' => json_encode($payload),
 			'headers' => [
 				'Content-Type' => 'application/json',
 				'Accept' => 'application/json',
-				'x-api-key' => '1cd01ecf-5222-4e24-b8df-2435e78ecf87'
+				'x-api-key' => $apiKey
 			],
 			'timeout' => 60
 		]);
