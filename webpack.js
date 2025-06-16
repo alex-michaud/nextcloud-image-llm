@@ -5,6 +5,7 @@ const path = require('path')
 
 webpackConfig.entry = {
 	main: { import: path.join(__dirname, 'src', 'main.js'), filename: 'archives_analyzer-main.js' },
+	settings: { import: path.join(__dirname, 'src', 'settings-admin.js'), filename: 'archives_analyzer-settings-admin.js' },
 }
 
 webpackConfig.plugins.push(
@@ -26,8 +27,8 @@ webpackConfig.module.rules.push({
 
 // Add this section to disable minification
 if (!webpackConfig.optimization) {
-	webpackConfig.optimization = {};
+	webpackConfig.optimization = {}
 }
-webpackConfig.optimization.minimize = false;
+webpackConfig.optimization.minimize = false
 
 module.exports = webpackConfig

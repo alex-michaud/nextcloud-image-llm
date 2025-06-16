@@ -17,6 +17,7 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use OCP\Http\Client\IClientService;
+use OCP\IAppConfig;
 //use OCP\Http\Client\IClientException;
 
 class AnalyzeController extends Controller
@@ -25,6 +26,7 @@ class AnalyzeController extends Controller
 	private IUserSession $userSession;
 	private IRootFolder $rootFolder;
 	private IClientService $clientService;
+	private IAppConfig $config;
 
 	/**
 	 * @param IRequest $request
@@ -32,6 +34,7 @@ class AnalyzeController extends Controller
 	 * @param IRootFolder $rootFolder
 	 * @param IUserSession $userSession
 	 * @param IClientService $clientService
+	 * @param IAppConfig $config
 	 * @param string $appName
 	 */
     public function __construct(
@@ -40,12 +43,14 @@ class AnalyzeController extends Controller
 		IRootFolder $rootFolder,
 		IUserSession $userSession,
 		IClientService $clientService,
+		IAppConfig $config,
 		string $appName
 	) {
 		$this->logger = $logger;
 		$this->rootFolder = $rootFolder;
 		$this->userSession = $userSession;
 		$this->clientService = $clientService;
+		$this->config = $config;
 		parent::__construct($appName, $request);
 		$this->logger->debug('AnalyzeController initialized', ['app' => $appName]);
 	}
@@ -92,10 +97,9 @@ class AnalyzeController extends Controller
 				$base64 = base64_encode($imageData);
 
 				// make a request to the api llm service
-				$llmApiUrl = 'http://host.docker.internal:3000/api/llm/generate';
 				$httpClient = $this->clientService->newClient();
 				$prompt = 'You are a Markdown formatter. Output only valid raw Markdown. Do not wrap your response in a code block or backticks.';
-				$model = 'qwen2.5vl:32b-q8_0';
+				$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', 'qwen2.5vl:32b-q8_0');
 				$payload = [
 					'images' => [$base64],
 					'model' => $model,
@@ -103,12 +107,24 @@ class AnalyzeController extends Controller
 				];
 
 				try {
-					$response = $httpClient->post($llmApiUrl, [
+					$apiKey = $this->config->getValueString('archives_analyzer', 'ApiKey');
+					$apiUrl = $this->config->getValueString('archives_analyzer', 'ApiUrl');
+
+					if (empty($apiKey)) {
+						$this->logger->error('API Key is not configured in Archives Analyzer settings');
+						return new JSONResponse(['error' => 'API Key is not configured'], Http::STATUS_BAD_REQUEST);
+					}
+					if (empty($apiUrl)) {
+						$this->logger->error('API URL is not configured in Archives Analyzer settings');
+						return new JSONResponse(['error' => 'API URL is not configured'], Http::STATUS_BAD_REQUEST);
+					}
+
+					$response = $httpClient->post($apiUrl, [
 						'body' => json_encode($payload),
 						'headers' => [
 							'Content-Type' => 'application/json',
 							'Accept' => 'application/json',
-							'x-api-key' => '1cd01ecf-5222-4e24-b8df-2435e78ecf87'
+							'x-api-key' => $apiKey
 						],
 						'timeout' => 60
 					]);

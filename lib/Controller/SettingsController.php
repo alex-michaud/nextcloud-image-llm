@@ -21,9 +21,10 @@ class SettingsController extends Controller {
 	}
 
 	#[AuthorizedAdminSetting]
-	public function save(string $apiKey, string $apiUrl): JSONResponse {
+	public function save(string $apiKey, string $apiUrl, string $ollamaModel): JSONResponse {
 		$this->config->setValueString('archives_analyzer', 'ApiKey', $apiKey);
 		$this->config->setValueString('archives_analyzer', 'ApiUrl', $apiUrl);
+		$this->config->setValueString('archives_analyzer', 'OllamaModel', $ollamaModel ?? '');
 		return new JSONResponse(['status' => 'success']);
 	}
 }

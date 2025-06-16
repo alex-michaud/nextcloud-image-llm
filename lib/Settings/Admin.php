@@ -5,36 +5,28 @@
  */
 namespace OCA\ArchivesAnalyzer\Settings;
 
-use OCA\Encryption\Session;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\IL10N;
-use OCP\ISession;
-use OCP\IUserSession;
 use OCP\Settings\ISettings;
-use Psr\Log\LoggerInterface;
 use OCP\IAppConfig;
 
 class Admin implements ISettings {
 	public function __construct(
-		private IL10N $l,
-		private LoggerInterface $logger,
-		private IUserSession $userSession,
 		private IAppConfig $config,
-		private ISession $session,
 	) {
 	}
 
 	/**
 	 * @return TemplateResponse
 	 */
-	public function getForm() {
+	public function getForm(): TemplateResponse {
 		$apiKey = $this->config->getValueString('archives_analyzer', 'ApiKey');
 		$apiUrl = $this->config->getValueString('archives_analyzer', 'ApiUrl');
-		$session = new Session($this->session);
+		$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', '');
 
 		$parameters = [
 			'apiKey' => $apiKey,
-			'$apiUrl' => $apiUrl,
+			'apiUrl' => $apiUrl,
+			'ollama_model' => $model,
 		];
 
 		return new TemplateResponse('archives_analyzer', 'settings-admin', $parameters, '');
@@ -43,8 +35,8 @@ class Admin implements ISettings {
 	/**
 	 * @return string the section ID, e.g. 'sharing'
 	 */
-	public function getSection() {
-		return 'archives_analyzer';
+	public function getSection(): string {
+		return 'ai';
 	}
 
 	/**
@@ -54,7 +46,7 @@ class Admin implements ISettings {
 	 *
 	 * E.g.: 70
 	 */
-	public function getPriority() {
-		return 11;
+	public function getPriority(): int {
+		return 75;
 	}
 }
