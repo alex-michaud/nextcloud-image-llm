@@ -45,13 +45,13 @@ const convertToMarkdownAction = new FileAction({
 
 	execBatch: (fileList) => {
 		if (fileList.length === 0) {
-			showError(t('archives_analyzer', 'No files selected for analysis.'))
+			showError(t('archives_analyzer', 'No files selected for analysis'))
 			return
 		}
 		for (const file of fileList) {
 			// Check if the file is an image
 			if (!file.mime.startsWith('image/')) {
-				showError(t('archives_analyzer', 'Only image files can be analyzed.'))
+				showError(t('archives_analyzer', 'Only image files can be analyzed'))
 				continue
 			}
 			const analyzeMessage = document.createElement('div')
@@ -81,7 +81,7 @@ const promptThenConvertToMarkdownAction = new FileAction({
 	},
 
 	exec: (file) => {
-		const actionPrompt = prompt('Please enter your prompt for the AI analysis:', 'Describe the image content here...')
+		const actionPrompt = prompt(t('archives_analyzer', 'Please enter your prompt for the AI analysis:'), '')
 		if (!actionPrompt) {
 			showError(t('archives_analyzer', 'No prompt provided. Action cancelled.'))
 			return

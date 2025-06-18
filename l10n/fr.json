@@ -1,8 +1,15 @@
 {
 	"translations": {
+		"Analyzing File": "Analise du fichier",
 		"Archives analyzer": "Analyseur d'archives",
 		"_archives_analyzer_description_": "Cette application vous permet d'analyser les archives et d'extraire des données à partir de celles-ci.",
+		"Convert to Markdown": "Convertir en Markdown",
+		"No files selected for analysis": "Aucun fichier sélectionné pour l'analyse",
+		"No prompt provided. Action cancelled.": "Aucune question fournie. Action annulée.",
 		"Ollama model": "Modèle Ollama",
+		"Only image files can be analyzed": "Seuls les fichiers image peuvent être analysés",
+		"Please enter your prompt for the AI analysis:": "Veuillez entrer votre question pour l'analyse par l'IA :",
+		"Prompt and Convert to Markdown": "Questionner et convertir en Markdown",
 		"Settings saved!": "Paramètres enregistrés !",
 		"Save settings": "Enregistrer les paramètres"
 	},

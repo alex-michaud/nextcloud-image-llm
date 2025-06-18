@@ -18,7 +18,6 @@ use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
-//use OCP\Http\Client\IClientException;
 
 class AnalyzeController extends Controller
 {
@@ -58,7 +57,7 @@ class AnalyzeController extends Controller
     #[NoCSRFRequired]
     #[NoAdminRequired]
 	/**
-	 * Convert an archive file to Markdown format using an LLM service.
+	 * Convert an archive file to a Markdown format using an LLM service.
 	 */
     public function markdown(string $file, string $prompt): JSONResponse
     {
@@ -89,37 +88,9 @@ class AnalyzeController extends Controller
 
 			if ($userFolder->nodeExists($relativePath)) {
 				$file = $userFolder->get($relativePath);
-// 				$this->logger->debug('File found', [
-// 					'file_id' => $file->getId(),
-// 					'mime' => $file->getMimeType(),
-// 					'size' => $file->getSize()
-// 				]);
-//                $imageData = $file->getContent();
-//				$base64 = base64_encode($imageData);
 				$base64 = $this->getBase64ImageFromFile($file);
 
-				// make a request to the api llm service
-//				$httpClient = $this->clientService->newClient();
-
-//				$model = $this->config->getValueString('archives_analyzer', 'OllamaModel', 'qwen2.5vl:32b-q8_0');
-//				$payload = [
-//					'images' => [$base64],
-//					'model' => $model,
-//					'prompt' => $prompt,
-//				];
-
 				try {
-					/*$response = $httpClient->post($apiUrl, [
-						'body' => json_encode($payload),
-						'headers' => [
-							'Content-Type' => 'application/json',
-							'Accept' => 'application/json',
-							'x-api-key' => $apiKey
-						],
-						'timeout' => 60
-					]);
-					$apiResult = $response->getBody();*/
-
 					$apiResult = $this->queryLLMService($base64, $prompt);
 
 					// Optionally decode JSON if needed:
@@ -133,10 +104,7 @@ class AnalyzeController extends Controller
 						$this->logger->error('LLM API returned empty response');
 						return new JSONResponse(['error' => 'LLM API returned empty response'], Http::STATUS_BAD_GATEWAY);
 					}
-				    // cleanup any Markdown code block
-//					$dataResponse = preg_replace('/^```markdown|```$/', '', $dataResponse);
-					// trim spaces at the beginning and end
-//					$dataResponse = trim($dataResponse);
+
 					$dataResponse = $this->cleanupMarkdownCodeBlock($dataResponse);
 
 					$originalName = $file->getName();
@@ -145,7 +113,7 @@ class AnalyzeController extends Controller
 
 					$parentFolder = $file->getParent();
 					if ($parentFolder->nodeExists($newFileName)) {
-						$parentFolder->get($newFileName)->delete(); // Overwrite if exists
+						$parentFolder->get($newFileName)->delete();
 					}
 					$newFile = $parentFolder->newFile($newFileName);
 
